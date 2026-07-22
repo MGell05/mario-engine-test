@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://dx20cxhjrivpl"]
+
+[ext_resource type="Texture2D" uid="uid://c5trdq77j5c81" path="res://level1/artwork/Blue.png" id="1_4flbx"]
+
+[node name="Node2D" type="Node2D" unique_id=1667331140]
+
+[node name="Background" type="TextureRect" parent="." unique_id=1469682548]
+texture_filter = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_4flbx")
+stretch_mode = 1
