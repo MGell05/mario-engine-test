@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://c5trdq77j5c81" path="res://level1/artwork/Blue.png" id="1_4flbx"]
 [ext_resource type="Texture2D" uid="uid://dt7wavym5dr6r" path="res://level1/artwork/Terrain (16x16).png" id="2_onrkg"]
+[ext_resource type="PackedScene" uid="uid://dybuvgsd50xx7" path="res://player/character.tscn" id="3_2hs0m"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_onrkg"]
 texture = ExtResource("2_onrkg")
@@ -11,10 +12,15 @@ texture = ExtResource("2_onrkg")
 3:0/0 = 0
 4:0/0 = 0
 6:0/0 = 0
+6:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 7:0/0 = 0
+7:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 8:0/0 = 0
+8:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:0/0 = 0
+9:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:0/0 = 0
+10:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:0/0 = 0
 13:0/0 = 0
 14:0/0 = 0
@@ -28,10 +34,15 @@ texture = ExtResource("2_onrkg")
 3:1/0 = 0
 4:1/0 = 0
 6:1/0 = 0
+6:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 7:1/0 = 0
+7:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 8:1/0 = 0
+8:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:1/0 = 0
+9:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 10:1/0 = 0
+10:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:1/0 = 0
 13:1/0 = 0
 14:1/0 = 0
@@ -43,8 +54,11 @@ texture = ExtResource("2_onrkg")
 1:2/0 = 0
 2:2/0 = 0
 6:2/0 = 0
+6:2/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 7:2/0 = 0
+7:2/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 8:2/0 = 0
+8:2/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:2/0 = 0
 14:2/0 = 0
 15:2/0 = 0
@@ -151,6 +165,7 @@ texture = ExtResource("2_onrkg")
 20:10/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_3ldk3"]
+physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_onrkg")
 
 [node name="Node" type="Node" unique_id=532332965]
@@ -171,3 +186,6 @@ position = Vector2(-7, 0)
 scale = Vector2(3, 3)
 tile_map_data = PackedByteArray("AAAAAAoAAAAHAAAAAAABAAoAAAAHAAAAAAACAAoAAAAHAAAAAAADAAoAAAAHAAAAAAAEAAoAAAAHAAAAAAAFAAoAAAAHAAAAAAAGAAoAAAAHAAAAAAAHAAoAAAAHAAAAAAAIAAoAAAAHAAAAAAAQAAoAAAAHAAAAAAAPAAoAAAAHAAAAAAAOAAoAAAAHAAAAAAANAAoAAAAHAAAAAAAMAAoAAAAHAAAAAAALAAoAAAAHAAAAAAAKAAoAAAAHAAAAAAAJAAoAAAAHAAAAAAAXAAoAAAAHAAAAAAAWAAoAAAAHAAAAAAAVAAoAAAAHAAAAAAAUAAoAAAAHAAAAAAATAAoAAAAHAAAAAAASAAoAAAAHAAAAAAARAAoAAAAHAAAAAAAXAAsAAAAHAAEAAAAXAAwAAAAHAAEAAAAWAAwAAAAHAAEAAAAWAA0AAAAHAAEAAAAXAA0AAAAHAAEAAAAWAAsAAAAHAAEAAAAVAAsAAAAHAAEAAAAVAAwAAAAHAAEAAAAVAA0AAAAHAAEAAAAUAA0AAAAHAAEAAAAUAAwAAAAHAAEAAAATAAwAAAAHAAEAAAATAAsAAAAHAAEAAAAUAAsAAAAHAAEAAAASAAwAAAAHAAEAAAASAA0AAAAHAAEAAAATAA0AAAAHAAEAAAARAAwAAAAHAAEAAAARAAsAAAAHAAEAAAASAAsAAAAHAAEAAAARAA0AAAAHAAEAAAAQAA0AAAAHAAEAAAAQAAwAAAAHAAEAAAAPAAwAAAAHAAEAAAAOAAwAAAAHAAEAAAANAAwAAAAHAAEAAAAQAAsAAAAHAAEAAAAPAAsAAAAHAAEAAAAPAA0AAAAHAAEAAAAOAA0AAAAHAAEAAAANAA0AAAAHAAEAAAAMAA0AAAAHAAEAAAALAA0AAAAHAAEAAAAKAA0AAAAHAAEAAAAJAA0AAAAHAAEAAAAIAA0AAAAHAAEAAAAHAA0AAAAHAAEAAAAGAA0AAAAHAAEAAAAGAAwAAAAHAAEAAAAHAAwAAAAHAAEAAAAIAAwAAAAHAAEAAAAJAAwAAAAHAAEAAAAKAAwAAAAHAAEAAAAJAAsAAAAHAAEAAAAIAAsAAAAHAAEAAAAHAAsAAAAHAAEAAAAGAAsAAAAHAAEAAAALAAwAAAAHAAEAAAAMAAwAAAAHAAEAAAAOAAsAAAAHAAEAAAANAAsAAAAHAAEAAAAMAAsAAAAHAAEAAAALAAsAAAAHAAEAAAAKAAsAAAAHAAEAAAAFAAsAAAAHAAEAAAAEAAsAAAAHAAEAAAADAAsAAAAHAAEAAAACAAsAAAAHAAEAAAABAAsAAAAHAAEAAAAAAAsAAAAHAAEAAAAAAAwAAAAHAAEAAAAAAA0AAAAHAAEAAAABAA0AAAAHAAEAAAACAA0AAAAHAAEAAAADAA0AAAAHAAEAAAAEAA0AAAAHAAEAAAAFAA0AAAAHAAEAAAAFAAwAAAAHAAEAAAAEAAwAAAAHAAEAAAADAAwAAAAHAAEAAAACAAwAAAAHAAEAAAABAAwAAAAHAAEAAAA=")
 tile_set = SubResource("TileSet_3ldk3")
+use_kinematic_bodies = true
+
+[node name="CharacterBody2D2" parent="." unique_id=1077625084 instance=ExtResource("3_2hs0m")]
