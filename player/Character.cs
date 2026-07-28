@@ -14,13 +14,20 @@ public partial class Character : CharacterBody2D
 	private static readonly float RunSpeed = PerFrame(2.25f);
 	private static readonly float DashSpeed = PerFrame(3.0f);
 
-	private static readonly float WalkAcceleration = PerFrameSquared(0.0234375f);
-	private static readonly float DashAcceleration = PerFrameSquared(0.03515625f);
-	private static readonly float Friction = PerFrameSquared(0.0234375f);
-	private static readonly float SkidDeceleration = PerFrameSquared(0.046875f);
+	private static readonly float WalkAcceleration = PerFrameSquared(0.09375f);
+	private static readonly float DashAcceleration = PerFrameSquared(0.09375f);
+	private static readonly float SkidDeceleration = PerFrameSquared(0.125f);
 
-	// Weaker than ground acceleration, and no friction, so jumps keep their momentum.
-	private static readonly float AirAcceleration = PerFrameSquared(0.020833f);
+	private static readonly float Friction = PerFrameSquared(0.0625f);
+	private static readonly float AirFriction = PerFrameSquared(0.0078125f);
+	private static readonly float DuckFriction = PerFrameSquared(0.015625f);
+
+	private static readonly float AirAcceleration = PerFrameSquared(0.0625f);
+	private static readonly float AirSkidDeceleration = PerFrameSquared(0.09375f);
+
+	// Wider than one frame's acceleration, so being at the speed cap can't flip
+	// between accelerating and braking on alternating frames.
+	private const float SpeedEpsilon = 1.0f;
 
 	// $B0, or $A8 off a dash.
 	private static readonly float JumpVelocity = -PerFrame(5.0f);
@@ -56,6 +63,7 @@ public partial class Character : CharacterBody2D
 		Vector2 velocity = Velocity;
 
 		bool isRunning = Input.IsActionPressed("run");
+		bool isDucking = Input.IsActionPressed("ui_down");
 		float directionX = Input.GetAxis("ui_left", "ui_right");
 
 		UpdatePMeter(dt, isRunning, velocity.X);
@@ -76,8 +84,8 @@ public partial class Character : CharacterBody2D
 		}
 
 		bool jumped = false;
-		velocity.X = ApplyHorizontalMovement(velocity.X, directionX, maxSpeed, isDashing, dt, supported);
-		velocity.Y = ApplyVerticalMovement(velocity.Y, isDashing, dt, ref jumped);
+		velocity.X = ApplyHorizontalMovement(velocity.X, directionX, maxSpeed, isDashing, dt, supported, isDucking);
+		velocity.Y = ApplyVerticalMovement(velocity.Y, velocity.X, dt, ref jumped);
 
 		Velocity = velocity;
 
@@ -98,22 +106,25 @@ public partial class Character : CharacterBody2D
 		return TestMove(GlobalTransform, new Vector2(0, SnapDistance));
 	}
 
-	private float ApplyHorizontalMovement(float velocityX, float directionX, float maxSpeed, bool isDashing, float dt, bool onFloor)
+	private float ApplyHorizontalMovement(float velocityX, float directionX, float maxSpeed, bool isDashing, float dt, bool onFloor, bool isDucking)
 	{
-		if (directionX == 0)
+		if (directionX == 0 || (isDucking && onFloor))
 		{
-			// Friction on the ground only; keep momentum in the air.
-			return onFloor ? Mathf.MoveToward(velocityX, 0, Friction * dt) : velocityX;
+			// Ducking ignores steering and slides; the air barely drags at all.
+			float stopRate = !onFloor ? AirFriction : (isDucking ? DuckFriction : Friction);
+			return Mathf.MoveToward(velocityX, 0, stopRate * dt);
 		}
 
 		float acceleration;
 		if (!onFloor)
 		{
-			acceleration = AirAcceleration;
+			// Turning mid-air still gets the harder brake.
+			acceleration = velocityX != 0 && Mathf.Sign(directionX) != Mathf.Sign(velocityX)
+				? AirSkidDeceleration
+				: AirAcceleration;
 		}
 		else if (velocityX != 0 && Mathf.Sign(directionX) != Mathf.Sign(velocityX))
 		{
-			// Turning against your own momentum brakes harder than accelerating.
 			acceleration = SkidDeceleration;
 		}
 		else
@@ -123,8 +134,9 @@ public partial class Character : CharacterBody2D
 
 		float target = directionX * maxSpeed;
 
-		// Over the cap (just released run): coast down instead of snapping.
-		if (Mathf.Abs(velocityX) > maxSpeed && Mathf.Sign(velocityX) == Mathf.Sign(directionX))
+		// The epsilon stops float noise flipping between accelerating and
+		// braking on alternating frames at top speed.
+		if (Mathf.Abs(velocityX) > maxSpeed + SpeedEpsilon && Mathf.Sign(velocityX) == Mathf.Sign(directionX))
 		{
 			return Mathf.MoveToward(velocityX, target, Friction * dt);
 		}
@@ -132,14 +144,17 @@ public partial class Character : CharacterBody2D
 		return Mathf.MoveToward(velocityX, target, acceleration * dt);
 	}
 
-	private float ApplyVerticalMovement(float velocityY, bool isDashing, float dt, ref bool jumped)
+	private float ApplyVerticalMovement(float velocityY, float velocityX, float dt, ref bool jumped)
 	{
 		if (Input.IsActionJustPressed("ui_up") && _coyoteTimer > 0.0f)
 		{
 			_jumpHeld = true;
 			jumped = true;
 			_coyoteTimer = 0.0f;
-			return isDashing ? RunJumpVelocity : JumpVelocity;
+
+			// Takeoff scales with the speed carried into the jump.
+			float speedRatio = Mathf.Clamp(Mathf.Abs(velocityX) / DashSpeed, 0.0f, 1.0f);
+			return Mathf.Lerp(JumpVelocity, RunJumpVelocity, speedRatio);
 		}
 
 		// Releasing mid-rise restores full gravity and can't be re-acquired.
