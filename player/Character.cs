@@ -14,6 +14,8 @@ public partial class Character : CharacterBody2D
 	private static readonly float RunSpeed = PerFrame(2.25f);
 	private static readonly float DashSpeed = PerFrame(3.0f);
 
+	private static readonly float PMeterChargeSpeed = PerFrame(2.1875f);
+
 	private static readonly float WalkAcceleration = PerFrameSquared(0.09375f);
 	private static readonly float DashAcceleration = PerFrameSquared(0.09375f);
 	private static readonly float SkidDeceleration = PerFrameSquared(0.125f);
@@ -29,29 +31,36 @@ public partial class Character : CharacterBody2D
 	// between accelerating and braking on alternating frames.
 	private const float SpeedEpsilon = 1.0f;
 
-	// $B0, or $A8 off a dash.
+	// Takeoff runs $B0 standing up to $9F at full speed.
 	private static readonly float JumpVelocity = -PerFrame(5.0f);
-	private static readonly float RunJumpVelocity = -PerFrame(5.5f);
+	private static readonly float RunJumpVelocity = -PerFrame(6.0625f);
 
-	// Holding jump halves gravity on the way up
-	private static readonly float Gravity = PerFrameSquared(0.1875f);
-	private static readonly float JumpHoldGravity = PerFrameSquared(0.09375f);
+	// Holding the jump button halves gravity, rising or falling.
+	private static readonly float Gravity = PerFrameSquared(0.375f);
+	private static readonly float JumpHoldGravity = PerFrameSquared(0.1875f);
 	private static readonly float MaxFallSpeed = PerFrame(4.0f);
 
-	private const float PMeterFillTime = 112.0f / 60.0f;
-	private const float PMeterDrainRate = 2.0f;
+	private const float PMeterFillTime = 56.0f / 60.0f;
+	private const float PMeterDrainRate = 0.5f;
 	private const float CoyoteTime = 6.0f / 60.0f;
 
 	private static readonly float SnapDistance = 2.0f * PixelScale;
 
+	private static readonly float GroundProbeLift = 1.0f * PixelScale;
+
+	private const float FootHalfWidth = 7.0f;
+	private const float FootHalfHeight = 11.5f;
+
 	private AnimatedSprite2D _sprite;
 	private float _pMeter;
-	private bool _jumpHeld;
 	private float _coyoteTimer;
+	private CollisionShape2D _collider;
 
 	public override void _Ready()
 	{
 		_sprite = GetNode<AnimatedSprite2D>("Sprite2D");
+
+		_collider = GetNode<CollisionShape2D>("CollisionShape2D");
 
 		FloorSnapLength = SnapDistance;
 		FloorStopOnSlope = true;
@@ -72,7 +81,7 @@ public partial class Character : CharacterBody2D
 		bool isDashing = isRunning && Mathf.IsEqualApprox(_pMeter, 1.0f);
 		float maxSpeed = isDashing ? DashSpeed : (isRunning ? RunSpeed : WalkSpeed);
 
-		bool supported = IsOnFloor() && HasGroundBelow();
+		bool supported = IsOnFloor();
 
 		if (supported)
 		{
@@ -91,19 +100,37 @@ public partial class Character : CharacterBody2D
 
 		// Snapping holds us to slopes, but left on it also re-grabs a ledge we
 		// just stepped off, since one frame of gravity moves us less than a pixel.
-		FloorSnapLength = (!jumped && velocity.Y >= 0 && supported) ? SnapDistance : 0.0f;
+		FloorSnapLength = (!jumped && velocity.Y >= 0 && HasGroundBelow()) ? SnapDistance : 0.0f;
 
 		MoveAndSlide();
 
 		UpdateAnimation(Velocity, directionX);
 	}
 
-	// Looks for solid ground just below the feet, using the body's own collider.
-	// IsOnFloor() can't answer this on its own. Once snapping has pulled us
-	// back onto a ledge we already walked off, it reports true again.
+	// Checks under both corners of the feet, so a ledge only counts as left
+	// behind once neither corner has anything under it.
 	private bool HasGroundBelow()
 	{
-		return TestMove(GlobalTransform, new Vector2(0, SnapDistance));
+		Vector2 scale = GlobalScale;
+		float footY = _collider.GlobalPosition.Y + FootHalfHeight * scale.Y;
+		float footX = FootHalfWidth * scale.X;
+		float centreX = _collider.GlobalPosition.X;
+
+		return HasGroundAt(new Vector2(centreX - footX, footY))
+			|| HasGroundAt(new Vector2(centreX + footX, footY));
+	}
+
+	private bool HasGroundAt(Vector2 point)
+	{
+		var query = new PhysicsRayQueryParameters2D
+		{
+			From = point - new Vector2(0, GroundProbeLift),
+			To = point + new Vector2(0, SnapDistance),
+			CollisionMask = CollisionMask,
+			Exclude = [GetRid()],
+		};
+
+		return GetWorld2D().DirectSpaceState.IntersectRay(query).Count > 0;
 	}
 
 	private float ApplyHorizontalMovement(float velocityX, float directionX, float maxSpeed, bool isDashing, float dt, bool onFloor, bool isDucking)
@@ -148,7 +175,6 @@ public partial class Character : CharacterBody2D
 	{
 		if (Input.IsActionJustPressed("ui_up") && _coyoteTimer > 0.0f)
 		{
-			_jumpHeld = true;
 			jumped = true;
 			_coyoteTimer = 0.0f;
 
@@ -157,20 +183,14 @@ public partial class Character : CharacterBody2D
 			return Mathf.Lerp(JumpVelocity, RunJumpVelocity, speedRatio);
 		}
 
-		// Releasing mid-rise restores full gravity and can't be re-acquired.
-		if (!Input.IsActionPressed("ui_up") || velocityY >= 0)
-		{
-			_jumpHeld = false;
-		}
-
-		float gravity = _jumpHeld ? JumpHoldGravity : Gravity;
+		float gravity = Input.IsActionPressed("ui_up") ? JumpHoldGravity : Gravity;
 		return Mathf.Min(velocityY + gravity * dt, MaxFallSpeed);
 	}
 
 	private void UpdatePMeter(float dt, bool isRunning, float velocityX)
 	{
 		// Only charges at run speed; holding the button while walking doesn't.
-		bool charging = isRunning && Mathf.Abs(velocityX) >= RunSpeed - 1.0f;
+		bool charging = isRunning && Mathf.Abs(velocityX) >= PMeterChargeSpeed;
 
 		if (charging)
 		{
@@ -185,7 +205,7 @@ public partial class Character : CharacterBody2D
 	private void UpdateAnimation(Vector2 velocity, float directionX)
 	{
 		// Face where you're steering, not where momentum is carrying you, so
-		// Mario turns to look into a skid.
+		// the player turns to look into a skid.
 		if (directionX != 0)
 		{
 			_sprite.FlipH = directionX < 0;
