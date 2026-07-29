@@ -6,64 +6,80 @@ public partial class Character : CharacterBody2D
 	private const float PixelScale = 3.0f;
 	private const float Fps = 60.0f;
 
+	private const float SpeedTrim = 1.25f;
+
 	private static float PerFrame(float pixelsPerFrame) => pixelsPerFrame * Fps * PixelScale;
 	private static float PerFrameSquared(float pixelsPerFrame) => pixelsPerFrame * Fps * Fps * PixelScale;
+	private static float Trimmed(float pixelsPerFrame) => PerFrame(pixelsPerFrame) * SpeedTrim;
+	private static float TrimmedSquared(float pixelsPerFrame) => PerFrameSquared(pixelsPerFrame) * SpeedTrim;
 
-	// $14 walk, $24 run, $30 sprint on a full P-meter.
-	private static readonly float WalkSpeed = PerFrame(1.25f);
-	private static readonly float RunSpeed = PerFrame(2.25f);
-	private static readonly float DashSpeed = PerFrame(3.0f);
+	// Walking, holding run, and the sprint that unlocks once the P-meter fills.
+	private static readonly float WalkSpeed = Trimmed(1.25f);
+	private static readonly float RunSpeed = Trimmed(2.25f);
+	private static readonly float DashSpeed = Trimmed(3.0f);
 
-	private static readonly float PMeterChargeSpeed = PerFrame(2.1875f);
+	// The meter charges from just under the run cap, not at it, so a small dip
+	// in speed doesn't throw away the progress towards a sprint.
+	private static readonly float PMeterChargeSpeed = Trimmed(2.1875f);
 
-	private static readonly float WalkAcceleration = PerFrameSquared(0.09375f);
-	private static readonly float DashAcceleration = PerFrameSquared(0.09375f);
-	private static readonly float SkidDeceleration = PerFrameSquared(0.125f);
+	// Turning against your own momentum brakes harder than starting from rest.
+	private static readonly float Acceleration = TrimmedSquared(0.09375f);
+	private static readonly float SkidDeceleration = TrimmedSquared(0.125f);
 
-	private static readonly float Friction = PerFrameSquared(0.0625f);
-	private static readonly float AirFriction = PerFrameSquared(0.0078125f);
-	private static readonly float DuckFriction = PerFrameSquared(0.015625f);
+	// The air barely drags at all, which is what preserves momentum through a jump.
+	private static readonly float Friction = TrimmedSquared(0.0625f);
+	private static readonly float AirFriction = TrimmedSquared(0.0078125f);
+	private static readonly float DuckFriction = TrimmedSquared(0.015625f);
 
-	private static readonly float AirAcceleration = PerFrameSquared(0.0625f);
-	private static readonly float AirSkidDeceleration = PerFrameSquared(0.09375f);
+	private static readonly float AirAcceleration = TrimmedSquared(0.0625f);
+	private static readonly float AirSkidDeceleration = TrimmedSquared(0.09375f);
 
-	// Wider than one frame's acceleration, so being at the speed cap can't flip
-	// between accelerating and braking on alternating frames.
+	// Slower than this counts as standing still, so nothing creeps on a slope.
+	private static readonly float MinSpeed = Trimmed(0.0625f);
+
+	// Guards the slope divide against a near-vertical floor normal.
+	private const float SlopeEpsilon = 0.01f;
+
+	// Stops float noise at the speed cap flipping between accelerating and braking.
 	private const float SpeedEpsilon = 1.0f;
 
-	// Takeoff runs $B0 standing up to $9F at full speed.
+	// Jumping off a sprint launches harder than jumping from a standstill.
 	private static readonly float JumpVelocity = -PerFrame(5.0f);
 	private static readonly float RunJumpVelocity = -PerFrame(6.0625f);
 
-	// Holding the jump button halves gravity, rising or falling.
+	// Holding the jump button halves gravity, whether rising or falling.
 	private static readonly float Gravity = PerFrameSquared(0.375f);
 	private static readonly float JumpHoldGravity = PerFrameSquared(0.1875f);
 	private static readonly float MaxFallSpeed = PerFrame(4.0f);
 
+	// The meter takes twice as long to drain as it does to fill.
 	private const float PMeterFillTime = 56.0f / 60.0f;
 	private const float PMeterDrainRate = 0.5f;
+
 	private const float CoyoteTime = 6.0f / 60.0f;
 
 	private static readonly float SnapDistance = 2.0f * PixelScale;
-
 	private static readonly float GroundProbeLift = 1.0f * PixelScale;
 
-	private const float FootHalfWidth = 7.0f;
+	// Narrower than a tile, so he drops into a one-tile gap rather than sitting
+	// across it on both lips.
+	private const float FootHalfWidth = 6.0f;
 	private const float FootHalfHeight = 11.5f;
 
 	private AnimatedSprite2D _sprite;
 	private float _pMeter;
 	private float _coyoteTimer;
 	private CollisionShape2D _collider;
+	private Vector2 _subPixel;
 
 	public override void _Ready()
 	{
 		_sprite = GetNode<AnimatedSprite2D>("Sprite2D");
-
 		_collider = GetNode<CollisionShape2D>("CollisionShape2D");
 
 		FloorSnapLength = SnapDistance;
 		FloorStopOnSlope = true;
+		FloorConstantSpeed = true;
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -93,18 +109,62 @@ public partial class Character : CharacterBody2D
 		}
 
 		bool jumped = false;
-		velocity.X = ApplyHorizontalMovement(velocity.X, directionX, maxSpeed, isDashing, dt, supported, isDucking);
+		velocity.X = ApplyHorizontalMovement(velocity.X, directionX, maxSpeed, dt, supported, isDucking);
 		velocity.Y = ApplyVerticalMovement(velocity.Y, velocity.X, dt, ref jumped);
+
+		if (Mathf.Abs(velocity.X) < MinSpeed)
+		{
+			velocity.X = 0.0f;
+		}
+
+		// Snapping keeps us on slopes, but leaving it on re-grabs a ledge we have
+		// already walked off, so it only stays on while there is ground underfoot.
+		FloorSnapLength = (!jumped && velocity.Y >= 0 && HasGroundBelow()) ? SnapDistance : 0.0f;
+
+		float slopeScale = SlopeScale();
+
+		// Move in whole pixels, carrying the remainder to the next frame. Three
+		// frames pass before a fall adds up to a single pixel, so running off a
+		// ledge clears a narrow gap before dropping at all.
+		Vector2 motion = new Vector2(velocity.X * slopeScale, velocity.Y) * dt + _subPixel;
+		Vector2 step = new(WholePixels(motion.X), WholePixels(motion.Y));
+		_subPixel = motion - step;
+
+		// Hand over the rounded step to move by, then restore the real velocity so
+		// acceleration keeps building from an exact figure instead of a rounded one.
+		Velocity = step / dt;
+		MoveAndSlide();
+
+		if (IsOnFloor() && velocity.Y > 0.0f)
+		{
+			velocity.Y = 0.0f;
+			_subPixel.Y = 0.0f;
+		}
 
 		Velocity = velocity;
 
-		// Snapping holds us to slopes, but left on it also re-grabs a ledge we
-		// just stepped off, since one frame of gravity moves us less than a pixel.
-		FloorSnapLength = (!jumped && velocity.Y >= 0 && HasGroundBelow()) ? SnapDistance : 0.0f;
+		UpdateAnimation(velocity, directionX);
+	}
 
-		MoveAndSlide();
+	// Truncates towards zero, so a partial pixel never moves him.
+	private static float WholePixels(float distance)
+	{
+		float pixels = distance / PixelScale;
+		return (pixels < 0.0f ? Mathf.Ceil(pixels) : Mathf.Floor(pixels)) * PixelScale;
+	}
 
-		UpdateAnimation(Velocity, directionX);
+	// Horizontal speed should be measured along the X axis, but the MoveAndSlide routine
+	// measures it along the surface, so a climb would eat into it. Flat ground
+	// and midair both return 1.
+	private float SlopeScale()
+	{
+		if (!IsOnFloor())
+		{
+			return 1.0f;
+		}
+
+		float normalY = Mathf.Abs(GetFloorNormal().Y);
+		return normalY > SlopeEpsilon ? 1.0f / normalY : 1.0f;
 	}
 
 	// Checks under both corners of the feet, so a ledge only counts as left
@@ -133,36 +193,31 @@ public partial class Character : CharacterBody2D
 		return GetWorld2D().DirectSpaceState.IntersectRay(query).Count > 0;
 	}
 
-	private float ApplyHorizontalMovement(float velocityX, float directionX, float maxSpeed, bool isDashing, float dt, bool onFloor, bool isDucking)
+	private float ApplyHorizontalMovement(float velocityX, float directionX, float maxSpeed, float dt, bool onFloor, bool isDucking)
 	{
+		// Ducking ignores steering and slides much further than simply letting go.
 		if (directionX == 0 || (isDucking && onFloor))
 		{
-			// Ducking ignores steering and slides; the air barely drags at all.
 			float stopRate = !onFloor ? AirFriction : (isDucking ? DuckFriction : Friction);
 			return Mathf.MoveToward(velocityX, 0, stopRate * dt);
 		}
 
+		bool turning = velocityX != 0 && Mathf.Sign(directionX) != Mathf.Sign(velocityX);
+
 		float acceleration;
 		if (!onFloor)
 		{
-			// Turning mid-air still gets the harder brake.
-			acceleration = velocityX != 0 && Mathf.Sign(directionX) != Mathf.Sign(velocityX)
-				? AirSkidDeceleration
-				: AirAcceleration;
-		}
-		else if (velocityX != 0 && Mathf.Sign(directionX) != Mathf.Sign(velocityX))
-		{
-			acceleration = SkidDeceleration;
+			acceleration = turning ? AirSkidDeceleration : AirAcceleration;
 		}
 		else
 		{
-			acceleration = isDashing ? DashAcceleration : WalkAcceleration;
+			acceleration = turning ? SkidDeceleration : Acceleration;
 		}
 
 		float target = directionX * maxSpeed;
 
-		// The epsilon stops float noise flipping between accelerating and
-		// braking on alternating frames at top speed.
+		// Above the cap after dropping out of a sprint, coast down under friction
+		// rather than snapping to the lower speed.
 		if (Mathf.Abs(velocityX) > maxSpeed + SpeedEpsilon && Mathf.Sign(velocityX) == Mathf.Sign(directionX))
 		{
 			return Mathf.MoveToward(velocityX, target, Friction * dt);
@@ -189,7 +244,6 @@ public partial class Character : CharacterBody2D
 
 	private void UpdatePMeter(float dt, bool isRunning, float velocityX)
 	{
-		// Only charges at run speed; holding the button while walking doesn't.
 		bool charging = isRunning && Mathf.Abs(velocityX) >= PMeterChargeSpeed;
 
 		if (charging)
