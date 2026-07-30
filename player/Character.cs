@@ -72,6 +72,12 @@ public partial class Character : CharacterBody2D
 	private CollisionShape2D _collider;
 	private Vector2 _subPixel;
 
+	// The body's own origin sits well away from where he is drawn, so the camera
+	// aims at the middle of the collider instead.
+	public Vector2 CameraFocus => _collider.GlobalPosition;
+
+	public float TopSpeed => DashSpeed;
+
 	public override void _Ready()
 	{
 		_sprite = GetNode<AnimatedSprite2D>("Sprite2D");

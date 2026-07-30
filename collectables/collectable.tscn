@@ -1,0 +1,195 @@
+[gd_scene format=3 uid="uid://b8kq2vxn4pcra"]
+
+[ext_resource type="Script" path="res://collectables/Collectable.cs" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dub08sp7df75x" path="res://collectables/Orange.png" id="2_orange"]
+[ext_resource type="Texture2D" uid="uid://bn6r0qsgcnh1u" path="res://collectables/Collected.png" id="3_taken"]
+
+[sub_resource type="AtlasTexture" id="Idle_00"]
+atlas = ExtResource("2_orange")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_01"]
+atlas = ExtResource("2_orange")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_02"]
+atlas = ExtResource("2_orange")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_03"]
+atlas = ExtResource("2_orange")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_04"]
+atlas = ExtResource("2_orange")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_05"]
+atlas = ExtResource("2_orange")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_06"]
+atlas = ExtResource("2_orange")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_07"]
+atlas = ExtResource("2_orange")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_08"]
+atlas = ExtResource("2_orange")
+region = Rect2(256, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_09"]
+atlas = ExtResource("2_orange")
+region = Rect2(288, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_10"]
+atlas = ExtResource("2_orange")
+region = Rect2(320, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_11"]
+atlas = ExtResource("2_orange")
+region = Rect2(352, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_12"]
+atlas = ExtResource("2_orange")
+region = Rect2(384, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_13"]
+atlas = ExtResource("2_orange")
+region = Rect2(416, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_14"]
+atlas = ExtResource("2_orange")
+region = Rect2(448, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_15"]
+atlas = ExtResource("2_orange")
+region = Rect2(480, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Idle_16"]
+atlas = ExtResource("2_orange")
+region = Rect2(512, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Taken_00"]
+atlas = ExtResource("3_taken")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Taken_01"]
+atlas = ExtResource("3_taken")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Taken_02"]
+atlas = ExtResource("3_taken")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Taken_03"]
+atlas = ExtResource("3_taken")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Taken_04"]
+atlas = ExtResource("3_taken")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="Taken_05"]
+atlas = ExtResource("3_taken")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_fruit"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Idle_00")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_01")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_02")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_03")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_04")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_05")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_06")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_07")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_08")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_09")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_11")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_12")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_13")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_14")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_15")
+}, {
+"duration": 1.0,
+"texture": SubResource("Idle_16")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 20.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Taken_00")
+}, {
+"duration": 1.0,
+"texture": SubResource("Taken_01")
+}, {
+"duration": 1.0,
+"texture": SubResource("Taken_02")
+}, {
+"duration": 1.0,
+"texture": SubResource("Taken_03")
+}, {
+"duration": 1.0,
+"texture": SubResource("Taken_04")
+}, {
+"duration": 1.0,
+"texture": SubResource("Taken_05")
+}],
+"loop": false,
+"name": &"collected",
+"speed": 20.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fruit"]
+size = Vector2(12, 10)
+
+[node name="Collectable" type="Area2D"]
+scale = Vector2(3, 3)
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+sprite_frames = SubResource("SpriteFrames_fruit")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_fruit")
